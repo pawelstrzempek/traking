@@ -206,7 +206,7 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 			double driftTime = -100000000;
 			for(int j = 0; j < pHit->GetMult(); j++) {
 								  driftTime = pHit->GetLeadTime(j)-refTime;
-								  if(driftTime > -100 && driftTime < 250 && pHit->GetTOT(j) < 100000){
+								  if(driftTime > -100 && driftTime < 220 && pHit->GetTOT(j) < 100000){//250
 								  					tot_hist[currentChannel]->Fill(pHit->GetTOT(j));	
 								  					tot_mult_hist[currentChannel]->Fill(pHit->GetTOT(j), j);
 							 	  					tot_barcode->Fill(pHit->GetTOT(j), currentChannel);

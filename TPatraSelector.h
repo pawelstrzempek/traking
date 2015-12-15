@@ -12,6 +12,10 @@
 #include <TChain.h>
 #include <TFile.h>
 
+#include "TStrawCalibration.cc"
+#include "./geometry/TStrawGeometry.cc"
+#include <iostream>
+#include <string>
 // Header file for the classes stored in the TTree if any.
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
@@ -27,27 +31,48 @@ public :
    Double_t        ftTDC2;
    Double_t        ToT;
 
+   Int_t           globEvNum_out;
+   Int_t           chNum_out;
+   Double_t        ftTDC2_out;
+   Double_t        ToT_out;
+   Double_t        Y_out;
+   Double_t        X_out;
+   Double_t        driftR_out;
+
    // List of branches
    TBranch        *b_globEvNum;   //!
    TBranch        *b_chNum;   //!
    TBranch        *b_ftTDC2;   //!
    TBranch        *b_ToT;   //!
+   // Declaration of the calibration object
+   TStrawCalibration *calibModule;
+   // Declaration of the geometry object
+   TStrawGeometry *geometryModule;
+   // OtputFile 
+   TFile *out_file;
 
-   TPatraSelector(TTree *tree=0);
+   TTree *tree_out;
+
+
+
+
+   TPatraSelector(TTree *tree, string);
    virtual ~TPatraSelector();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop();
+   virtual void     Loop(unsigned);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
+   void AttachCalibration(TStrawCalibration *);
+   void AttachGeometry(TStrawGeometry *);
 };
 
 #endif
 
 #ifdef TPatraSelector_cxx
-TPatraSelector::TPatraSelector(TTree *tree) : fChain(0) 
+TPatraSelector::TPatraSelector(TTree *tree, string fname) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -59,7 +84,20 @@ TPatraSelector::TPatraSelector(TTree *tree) : fChain(0)
   //    f->GetObject("PATRA",tree);
 
    //}
+	
+   out_file = new TFile(fname.c_str(),"RECREATE");
+   std::cout<<"Creating ouput file: "<<fname<<std::endl;
    Init(tree);
+   tree_out = new TTree("PATRAC","Panda trakers");
+   tree_out->Branch("globEvNum", &globEvNum_out);
+   tree_out->Branch("chNum", &chNum_out);
+   tree_out->Branch("ftTDC2", &ftTDC2_out);
+   tree_out->Branch("ToT", &ToT_out);
+   tree_out->Branch("driftR", &driftR_out);
+   tree_out->Branch("X", &X_out);
+   tree_out->Branch("Y", &Y_out);
+
+
 }
 
 TPatraSelector::~TPatraSelector()
