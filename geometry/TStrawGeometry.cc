@@ -7,19 +7,27 @@
 
 class TStrawGeometry{
 std::list<TStrawModule*> modules;
-
+double scale_factor;
 public:
-        TStrawGeometry(TStrawModule *sm){
+	
+
+//        TStrawGeometry(TStrawModule *sm, double sf=1.): scale_factor(sf){
+  //      modules.push_front(sm);
+//	}
+        TStrawGeometry(TStrawModule *sm, double sf){
         modules.push_front(sm);
+	scale_factor = sf;
 	}
+
+
         ~TStrawGeometry(){
         }
 	std::pair<double,double> GetChannelCoordinance(unsigned channelNumber);
 	void AttachModule(TStrawModule *);
-	void SaveGeometry(TFile *f, double scale_factor = 0.004);
-//private:
-
-
+	void SaveGeometry(TFile *f);//, double scale_factor = 0.004);
+	void Draw(double x_shift, double y_shift);//, double scale_factor);
+	void MarkDriftRadius(unsigned channel_number, double dr);
+	void Clear();
 };
 
 void TStrawGeometry::AttachModule(TStrawModule *sm){
@@ -54,11 +62,12 @@ for (std::list<TStrawModule*>::iterator it = modules.begin(); it != modules.end(
 return std::make_pair(x_crd,y_crd);
 }
 
-void TStrawGeometry::SaveGeometry(TFile *f, double scale_factor){
+//void TStrawGeometry::SaveGeometry(TFile *f, double scale_factor){
+void TStrawGeometry::SaveGeometry(TFile *f){
 TCanvas *can = new TCanvas("StrawGeometry","Straw geometry",800,800);
 
 for (std::list<TStrawModule*>::iterator it = modules.begin(); it != modules.end(); it++){
-	(*it)->Draw(scale_factor);
+	(*it)->Draw(0.,0.,scale_factor);
 }
 f->cd();
 can->Write();
@@ -66,7 +75,33 @@ return;
 }
 
 
+//void TStrawGeometry::Draw(double x_shift, double y_shift, double scale_factor){
+void TStrawGeometry::Draw(double x_shift, double y_shift){
+ for (std::list<TStrawModule*>::iterator it = modules.begin(); it != modules.end(); it++){
+         (*it)->Draw(x_shift, y_shift,scale_factor);
+ }
+}
+
+void TStrawGeometry::MarkDriftRadius(unsigned channel_number, double dr){
+ for (std::list<TStrawModule*>::iterator it = modules.begin(); it != modules.end(); it++){
+//      std::cout << "Getting channel:"<<channelNumber<<std::endl;
+        if(channel_number > ((*it)->GetNumberOfStraws()) ){
+                channel_number = channel_number - (*it)->GetNumberOfStraws();
+                continue;
+        }
+        (*it)->MarkStrawDr(channel_number-1, (this->scale_factor)*dr );
+        break;
+ }
+return;
+}
 
 
+void TStrawGeometry::Clear(){
+ for(int ch =1; ch < 97 ; ch++){
+ MarkDriftRadius(ch,0);
+ }
+
+
+}
 
 

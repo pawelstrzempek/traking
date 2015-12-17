@@ -28,6 +28,7 @@ public:
 		shape = new TEllipse(x_pos, y_pos, radius, radius);
 		hitShape = new TEllipse(x_pos, y_pos, 0.0, 0.0);
 		hitShape->SetLineColor(2); 
+		hitShape->SetLineWidth(2); 
 	//	lable = new TText(x_pos, y_pos, s.str().c_str());
 		id = number;
 		number++;
@@ -37,7 +38,7 @@ public:
 	~TStraw(){
 		number--;
 	}
-	void Draw(double);
+	void Draw(double, double, double);
 	void Mark(int);	
 	void Mark();	
 	void SetX1(double);	
@@ -62,16 +63,16 @@ void TStraw::Mark(){
 	shape->SetFillColor(9);
 }
 
-void TStraw::Draw(double scale_factor){
-	shape->SetX1(scale_factor*x_pos);
-	shape->SetY1(scale_factor*y_pos);
+void TStraw::Draw(double x_shift, double y_shift, double scale_factor){
+	shape->SetX1(scale_factor*(x_pos+x_shift));
+	shape->SetY1(scale_factor*(y_pos+y_shift));
 	shape->SetR1(scale_factor*radius);
 	shape->SetR2(scale_factor*radius);
-	hitShape->SetX1(scale_factor*x_pos);
-	hitShape->SetY1(scale_factor*y_pos);
+	hitShape->SetX1(scale_factor*(x_pos+x_shift));
+	hitShape->SetY1(scale_factor*(y_pos+y_shift));
 	lable->SetTextSize(radius*scale_factor);
-	lable->SetX(scale_factor*x_pos);
-	lable->SetY(scale_factor*y_pos);
+	lable->SetX(scale_factor*(x_pos+x_shift));
+	lable->SetY(scale_factor*(y_pos+y_shift));
 
 	shape->Draw();
 	hitShape->Draw();
@@ -106,8 +107,8 @@ unsigned int TStraw::GetId(){
 }
 
 void TStraw::updateDt(double dt){
-	hitShape->SetR1(dtToRadius(dt));
-	hitShape->SetR2(dtToRadius(dt));
+	hitShape->SetR1(dt);
+	hitShape->SetR2(dt);
 }
 
 double TStraw::dtToRadius(double dt){

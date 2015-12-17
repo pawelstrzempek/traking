@@ -37,26 +37,26 @@ TH2F* tot_mult_hist[CHANNELS_NUMBER];
 TH2F* tot_barcode;
 TH2F* dt_barcode;
 TH2F* dt_vs_tot;
-//TH1F* plane2eff;
-//TH1F* planemult3;
-//TH1F* planemult6;
-//TH1F* planemult3x1;
-//TH1F* refTimesDiff;
-TH1F* deadChannelsMap;
+TH1F* plane2eff;
+TH1F* planemult3;
+TH1F* planemult6;
+TH1F* planemult3x1;
+TH1F* refTimesDiff;
+
 
 int DC[] = {8,12,61,71,81};
 std::vector<int> deadChannels (DC,DC+sizeof(DC)/sizeof(int));
 std::vector<int>::iterator it;
 
 
-//std::map<int,std::pair<int,int> > geometryMapper();
+std::map<int,std::pair<int,int> > geometryMapper();
 
 
 
-int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChannel = 51)
+int straw_pgenerate_diag_histo_panda(int eventsNum, const char* fileName, int referenceChannel = 51)
 {
-//  std::map<int,std::pair<int,int> > strawMap;
-//  strawMap = geometryMapper();
+  std::map<int,std::pair<int,int> > strawMap;
+  strawMap = geometryMapper();
 
 //  std::cout << strawMap[31].first << std::endl;
 //  std::cout << strawMap[31].second << std::endl;
@@ -64,18 +64,18 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 //  std::cout << strawMap[32].second << std::endl;
 
 //return 0;
-//  int fpl = -1;
-//  int fel = -1;
-  unsigned globEv = 0;
+  int fpl = -1;
+  int fel = -1;
+  int globEv = 0;
   int chNum = -1;
   double drifttime_tree = -1000000;
   double tot_tree = -1000000;
 
-  TTree *tree = new TTree("FOTRA","Panda trakers");
+  TTree *tree = new TTree("STT_UJ","ToT");
   tree->Branch("globEvNum", &globEv);
   tree->Branch("chNum", &chNum);
-//  tree->Branch("fplTDC", &fpl);
-//  tree->Branch("felTDC", &fel);
+  tree->Branch("fplTDC", &fpl);
+  tree->Branch("felTDC", &fel);
   tree->Branch("ftTDC2", &drifttime_tree);
   tree->Branch("ToT", &tot_tree);
 
@@ -88,12 +88,12 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
   TClonesArray* pArray = 0;
   chain.SetBranchAddress("eventIII", &pEvent);
 
-  string newFileName(fileName);
-  newFileName = newFileName.substr(0, newFileName.size() - 5);
-  newFileName += "_FOTRA.root";
+	string newFileName(fileName);
+	newFileName = newFileName.substr(0, newFileName.size() - 5);
+	newFileName += "_histos.root";
 
-  TFile* new_file = new TFile(newFileName.c_str(), "RECREATE");
-  new_file->cd();
+	TFile* new_file = new TFile(newFileName.c_str(), "RECREATE");
+	new_file->cd();
   
   Int_t entries = (Int_t)chain.GetEntries();
   cout<<"Entries = " <<entries<<endl;
@@ -109,19 +109,14 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
   tot_barcode = new TH2F("tot_barcode", "tot_barcode", 10000, 0, 1000, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
   dt_barcode = new TH2F("dt_barcode", "dt_barcode", DT_BINS, DT_MIN, DT_MAX, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
   dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", DT_BINS, DT_MIN, DT_MAX, TOT_BINS,TOT_MIN,TOT_MAX);
-  //plane2eff = new TH1F("plane2eff","plane2eff",6,0,6);
-  //planemult3 = new TH1F("planemult3","planemult3",5,0,5);
-  //planemult3x1 = new TH1F("planemult3x1","planemult3x1",5,0,5);
-  //planemult6 = new TH1F("planemult6","planemult6",5,0,5);
+  plane2eff = new TH1F("plane2eff","plane2eff",6,0,6);
+  planemult3 = new TH1F("planemult3","planemult3",5,0,5);
+  planemult3x1 = new TH1F("planemult3x1","planemult3x1",5,0,5);
+  planemult6 = new TH1F("planemult6","planemult6",5,0,5);
 
 	// drift time histograms
   for (int i = 0; i < CHANNELS_NUMBER; i++) { dt_hist[i] = new TH1F(Form("dt_hist%d", i), Form("dt_hist%d", i), DT_BINS,DT_MIN,DT_MAX); }
-  //refTimesDiff = new TH1F("refTimesDiff","refTimesDiff", 20000, -1000, 1000);
-
-  deadChannelsMap = new TH1F("deadChannelsMap","deadChannelsMap",CHANNELS_NUMBER,1,CHANNELS_NUMBER+1);
-  for(it = deadChannels.begin(); it != deadChannels.end(); it++)
-	deadChannelsMap->Fill((*it));
-
+  refTimesDiff = new TH1F("refTimesDiff","refTimesDiff", 20000, -1000, 1000);
 
 // ------ loop over events--------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------
@@ -145,8 +140,11 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
    while( pHit = (TDCChannel*) iter.Next() )
    {
          // fetch the ref time
+//	if(pHit->GetChannel() == referenceChannel)
+//	std::cerr<<"hit mult "<<pHit->GetMult()<<std::endl;
          if (pHit->GetChannel() == referenceChannel && pHit->GetMult() > 0){
 	        refTime = pHit->GetLeadTime1();
+//	std::cerr<<refTime<<std::endl;
 	}
 	if (pHit->GetChannel() == 0 && pHit->GetMult() > 0)
 		refTime0 = pHit->GetLeadTime1();
@@ -160,16 +158,20 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 
     if (refTime == -200000) //skipping events with no ref time set
 	continue;
+	
     if (refTime0 == -200000) //skipping events with no ref time set
 	continue;
     if (refTime49 == -200000) //skipping events with no ref time set
 	continue;
+		// ------ loop over channels
+//	std::cerr<<i++<<std::endl;
 //    if (refTime98 == -200000) //skipping events with no ref time set
 //        continue;
+
     if (refTime147 == -200000) //skipping events with no ref time set
         continue;
 
-	//	refTimesDiff->Fill(refTime0 - refTime98);
+		refTimesDiff->Fill(refTime0 - refTime98);
 
     iter.Begin();
     while( pHit = (TDCChannel*) iter.Next() )
@@ -185,15 +187,12 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 			}
 			if(currentChannel > 49)
 				currentChannel--;
-			if(currentChannel > 98)
-				currentChannel--;
-			if(currentChannel > 147)
-				currentChannel--;
+
 			// fill the tot histograms with the first hits on channels
 			//tot_hist[pHit->GetChannel()]->Fill(pHit->GetTOT1());
-			//double leadTimeTmp = 0.;
-			//fpl = -1;
-			//fel = -1;	
+			double leadTimeTmp = 0.;
+			fpl = -1;
+			fel = -1;	
 			// fill the tot histograms with all the hits on channels
 			//for(int j = 0; j < pHit->GetMult(); j++) { tot_hist[pHit->GetChannel()]->Fill(pHit->GetTOT(j)); }
 
@@ -206,7 +205,7 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 			double driftTime = -100000000;
 			for(int j = 0; j < pHit->GetMult(); j++) {
 								  driftTime = pHit->GetLeadTime(j)-refTime;
-								  if(driftTime > -100 && driftTime < 220 && pHit->GetTOT(j) < 100000){//250
+								  if(driftTime > -100 && driftTime < 250 && pHit->GetTOT(j) < 100000){
 								  					tot_hist[currentChannel]->Fill(pHit->GetTOT(j));	
 								  					tot_mult_hist[currentChannel]->Fill(pHit->GetTOT(j), j);
 							 	  					tot_barcode->Fill(pHit->GetTOT(j), currentChannel);
@@ -218,21 +217,21 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 													//****FILLING TREE***
 													drifttime_tree = driftTime;
 								 					tot_tree = pHit->GetTOT(j); 
-													//fpl = strawMap[currentChannel].first;
-													//fel = strawMap[currentChannel].second;
+													fpl = strawMap[currentChannel].first;
+													fel = strawMap[currentChannel].second;
 													chNum = currentChannel;
 													tree->Fill();
 													//*****************						 					
-													//if(fpl == 1 ){layers[0]=true;}else if(fpl == 2){layers[1]=true;}	
-													//else if(fpl == 3 ){layers[2]=true;}else if(fpl == 4){layers[3]=true;}	
-													//else if(fpl == 5 ){layers[4]=true;}else if(fpl == 6){layers[5]=true;}	
+													if(fpl == 1 ){layers[0]=true;}else if(fpl == 2){layers[1]=true;}	
+													else if(fpl == 3 ){layers[2]=true;}else if(fpl == 4){layers[3]=true;}	
+													else if(fpl == 5 ){layers[4]=true;}else if(fpl == 6){layers[5]=true;}	
 													
 
 													//std::cerr<<"currentChannel="<<currentChannel<<"  fpl="<<fpl<<std::endl;
 								 }
 			//					  std::cerr<< pHit->GetLeadTime(j)<<"   "<<refTime<<""<<(pHit->GetLeadTime(j)-refTime)<<std::endl;
 			}
-			//leadTimeTmp = pHit->GetLeadTime(0);
+			leadTimeTmp = pHit->GetLeadTime(0);
 
 			if(pHit->GetMult() > 0 ) 
 			{
@@ -250,7 +249,7 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 		}//loop over on event ready
 
 		//std::cerr<<"\nNext Event\n";
-		/*if(layers[0] && layers[1] && layers[2] && layers[3] && layers[4] && layers[5] )
+		if(layers[0] && layers[1] && layers[2] && layers[3] && layers[4] && layers[5] )
 			 planemult6->Fill(2);
 		if(!layers[0] && !layers[1] && !layers[2] && !layers[3] && !layers[4] && !layers[5])
 			 planemult6->Fill(3);
@@ -279,16 +278,16 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 		planemult3->Fill(1);
 		planemult3x1->Fill(1);
 		planemult6->Fill(1);
-*/
+
 	}//loop over all events ready
 	// ------ adjust histograms
-/*	for (int i = 0; i < CHANNELS_NUMBER; i++) {
+	for (int i = 0; i < CHANNELS_NUMBER; i++) {
 		// tot histograms centered at mean and +- 5ns offsets
 		tot_hist[i]->GetXaxis()->SetRangeUser(tot_hist[i]->GetMean(1) - 100, tot_hist[i]->GetMean(1) + 100);
 		tot_mult_hist[i]->GetXaxis()->SetRangeUser(tot_hist[i]->GetMean(1) - 100, tot_hist[i]->GetMean(1) + 100);
 	}
 	tot_barcode->GetXaxis()->SetRangeUser(tot_hist[1]->GetMean(1) - 100, tot_hist[1]->GetMean(1) + 100);
-*/
+
 	// ------ draw fits
 	//for (int i = 0; i < CHANNELS_NUMBER; i++) {
 	//	tot_hist[i]->Fit("gaus");
@@ -299,10 +298,10 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 	tot_barcode->Write();
 	dt_barcode->Write();
 	dt_vs_tot->Write();
- //	plane2eff->Write(); 
- // 	planemult3->Write();
- //	planemult3x1->Write();
- // 	planemult6->Write();
+ 	plane2eff->Write(); 
+  	planemult3->Write();
+	planemult3x1->Write();
+  	planemult6->Write();
 
 
 	TDirectory *cdtot = new_file->mkdir("tot");
@@ -325,7 +324,7 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 }
 
 
-/*
+
 std::map<int,std::pair<int,int> > geometryMapper(){
 std::map<int,std::pair<int,int> > myMap;
 
@@ -441,4 +440,4 @@ myMap[94] = std::make_pair(5,15);
 myMap[95] = std::make_pair(6,16);
 myMap[96] = std::make_pair(5,16);
 return myMap;
-}*/
+}

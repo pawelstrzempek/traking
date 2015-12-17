@@ -31,10 +31,10 @@ class TStrawModule {
 public:
 	TStrawModule(double x_coordinate, double y_coordinate, double angle_rotation, unsigned int straws_in_double_layer, unsigned int number_of_double_layers, double straw_radius);
 	TStrawModule( std::string fileName);
-	void Draw(double scale_factor);
+	void Draw(double x_shift, double y_shift, double scale_factor);
 	void MarkStraw(unsigned);
 	void MarkStraw(unsigned, int);
-        void MarkStrawDt(unsigned , double );
+        void MarkStrawDr(unsigned , double );
 	void Clear();
 	void ClearDt();
 	double GetStrawRadius();
@@ -97,7 +97,7 @@ TStrawModule::TStrawModule( std::string fileName){
 
 }
 
-void TStrawModule::Draw(double scale_factor){
+void TStrawModule::Draw(double x_shift, double y_shift, double scale_factor){
 	
 float sqrt3 = 1.7320508;
 //	float x_step = 0.9/
@@ -122,7 +122,7 @@ float sqrt3 = 1.7320508;
 */
 //std::cout<<"EnterLoop\n"<<"straws_in_double_layer="<<straws_in_double_layer<<"\nnumber_of_double_layers"<<number_of_double_layers<<std::endl;
 	for (unsigned int straw_iter = 0; straw_iter< straws_qty; straw_iter++){
-	straws[straw_iter]->Draw(scale_factor);
+	straws[straw_iter]->Draw(x_shift, y_shift, scale_factor);
 	//std::cout<<straw_iter<<std::endl;
 	}
 
@@ -158,7 +158,7 @@ void TStrawModule::MarkStraw(unsigned  st_number){
 	}	
 }
 
-void TStrawModule::MarkStrawDt(unsigned st_number, double dt){
+void TStrawModule::MarkStrawDr(unsigned st_number, double dt){
 	if(st_number <= straws.size()){
 		hit_qty++;
         	straws[st_number]->updateDt(dt);
