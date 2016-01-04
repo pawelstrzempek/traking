@@ -29,6 +29,7 @@ TStrawGeometry *sg; //pointer to obj storing geometry
 
 TFotracSelector* ft_selector; //pointer to obj which iterates throuh nTuple
 
+TGTextEntry *fTextEntryNtupleName;
 TGTextEntry *fTextEntryFilePath;
 TGNumberEntry *eventNumberDisplay;
 TFile *fileObj;

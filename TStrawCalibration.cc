@@ -9,11 +9,15 @@
 class TStrawCalibration{
 public:
 	 TH1F *calibHist;
-	 TF1 *calibCurve;
+	 TF1 *calibCurvePart1;
+	 TF1 *calibCurvePart2;
 	 TH1D *prj;
 	 double t0;//beginning of the dt histogram 
 	 double tk;//end of  the dt histogram
-	 double p0,p1,p2,p3; //fitting parameters
+	 double p0Part1,p1Part1,p2Part1,p3Part1; //fitting parameters
+	 double p0Part2,p1Part2,p2Part2,p3Part2; //fitting parameters
+	 double range_min, range_mid, range_max; //** variables which defines the intervals for two fits
+
 public:
 	TStrawCalibration(int channelsQty, TH2F* dt_all, unsigned t0_param, unsigned tk_param, double r_tube, double r_wire);
 	TF1* CalibrationCurveGenerate();
@@ -72,17 +76,35 @@ private:
 
 	TF1* TStrawCalibration::CalibrationCurveGenerate(){
 	//** two pol3 fits would be better 
-		std::cout<<"Fitting\n";
-		calibHist->Fit("pol3");
-		std::cout<<"Getting function\n";
+		range_min = 0.;
+		range_mid = calibHist->GetBinCenter(calibHist->GetNbinsX()/5.);
+		range_max = calibHist->GetBinCenter(calibHist->GetNbinsX());
+		std::cout<<"Setting ranges to: "<<range_min<<" "<<range_mid<<" "<<range_max<<std::endl;
+		
+		std::cout<<"Fitting pol3 to two different intervals\n";
+		//calibCurvePart1 = new TF1("calibCurvePart1", "pol3", 0, (int)(calibHist->GetNbinsX()/2.));
+		//calibCurvePart2 = new TF1("calibCurvePart2", "pol3",  (int)(calibHist->GetNbinsX()/2.), (int)(calibHist->GetNbinsX()));
+		calibCurvePart1 = new TF1("calibCurvePart1", "pol3", range_min, range_mid);
+		calibCurvePart2 = new TF1("calibCurvePart2", "pol3", range_mid, range_max);
+		calibHist->Fit("calibCurvePart1", "R");
+		calibHist->Fit("calibCurvePart2", "R");
+
+		//std::cout<<"=====> przedzial:"<<(int)(calibHist->GetNbinsX()/2.)<<std::endl<<std::endl;
+
 		//TF1 *fitFunction = calibHist->GetFunction("r_t_calibrationCurve");
-		calibCurve = calibHist->GetFunction("pol3");//fitFunction;
+		//calibCurve = calibHist->GetFunction("pol3");//fitFunction;
+
+
 		std::cout<<"Gettig parameters\n";
-		this->p0 = calibCurve->GetParameter(0);
-		this->p1 = calibCurve->GetParameter(1);
-		this->p2 = calibCurve->GetParameter(2);
-		this->p3 = calibCurve->GetParameter(3);
-		std::cout<<p0<<"\n"<<p1<<"\n"<<p2<<"\n"<<p3<<"\n";
+		this->p0Part1 = calibCurvePart1->GetParameter(0);
+		this->p1Part1 = calibCurvePart1->GetParameter(1);
+		this->p2Part1 = calibCurvePart1->GetParameter(2);
+		this->p3Part1 = calibCurvePart1->GetParameter(3);
+
+		this->p0Part2 = calibCurvePart2->GetParameter(0);
+		this->p1Part2 = calibCurvePart2->GetParameter(1);
+		this->p2Part2 = calibCurvePart2->GetParameter(2);
+		this->p3Part2 = calibCurvePart2->GetParameter(3);
 	}
 
 
@@ -132,14 +154,15 @@ private:
 		//** it may happen that dt_in-t0<0. Because the t0 is calculated for dt histogram (for all channels) which
 		//** is cut at the beginning and at the end accoridng to t0_param and tk_param
 		if(dt_in < 0) 
-			//dt_in = 0; 
 			return 0.;
 		if(dt_in > (tk-t0))
-			return (p0+p1*(tk-t0)+p2*(tk-t0)*(tk-t0)+p3*(tk-t0)*(tk-t0)*(tk-t0));
-			//dt_in = tk;
+			return (p0Part2+p1Part2*(tk-t0)+p2Part2*(tk-t0)*(tk-t0)+p3Part2*(tk-t0)*(tk-t0)*(tk-t0));
 		//std::cout<<"p0="<<this->p0<<"  p1="<<this->p1<<"  p2="<<this->p2<<"  p3="<<this->p3<<std::endl;
 		//std::cout<<"t0="<<t0<<"  tk="<<tk<<"  dt_in_org="<<dt_in_org<<"  dt_in="<<dt_in<<std::endl;
-		return (p0+p1*dt_in+p2*dt_in*dt_in+p3*dt_in*dt_in*dt_in);
+		if(dt_in <= range_mid)
+			return (p0Part1+p1Part1*dt_in+p2Part1*dt_in*dt_in+p3Part1*dt_in*dt_in*dt_in);
+		else
+			return (p0Part2+p1Part2*dt_in+p2Part2*dt_in*dt_in+p3Part2*dt_in*dt_in*dt_in);
 	}
 
 	void TStrawCalibration::SaveDiagnosticHistograms(TFile *f){
@@ -148,14 +171,15 @@ private:
 	cdcalibration->cd();
         prj->Write();
 	calibHist->Write();
-        calibCurve->Write();
+        calibCurvePart1->Write();
+        calibCurvePart2->Write();
 	
 	f->cd();
 	std::cout<<"Histograms saved\n";
 	}
 
 	void TStrawCalibration::SetP0(double param){
-	p0= param;
+	p0Part1= param;
 	}
 
 	

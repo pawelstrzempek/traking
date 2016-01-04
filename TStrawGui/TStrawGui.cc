@@ -48,7 +48,7 @@ sg->Draw(10,20);
 // Create a horizontal frame widget with buttons
 TGHorizontalFrame *hframe = new TGHorizontalFrame(fMain,800,40);
 
-TGLabel *fLabelFilePath = new TGLabel(fMain,"File full path:");
+TGLabel *fLabelFilePath = new TGLabel(fMain,"File full path: ");
 fLabelFilePath->SetTextJustify(36);
 fLabelFilePath->SetMargins(0,0,0,0);
 fLabelFilePath->SetWrapLength(-1);
@@ -77,7 +77,17 @@ fTextEntryFilePath->SetAlignment(kTextLeft);
 fTextEntryFilePath->Resize(93,fTextEntryFilePath->GetDefaultHeight());
 fMain->AddFrame(fTextEntryFilePath, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
 fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC.root");
-fTextEntryFilePath->MoveResize(304,520,450,22);
+fTextEntryFilePath->MoveResize(304,520,550,22);
+
+fTextEntryNtupleName = new TGTextEntry(fMain, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kOwnBackground);
+fTextEntryNtupleName->SetMaxLength(64);
+fTextEntryNtupleName->SetAlignment(kTextLeft);
+fTextEntryNtupleName->Resize(93,fTextEntryFilePath->GetDefaultHeight());
+fMain->AddFrame(fTextEntryNtupleName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+fTextEntryNtupleName->SetText("FOTRAC");
+fTextEntryNtupleName->MoveResize(804,520,150,22);
+
+
 
 TGTextButton *loadFileBtn = new TGTextButton(hframe,"&Load");
 loadFileBtn->Connect("Clicked()","TStrawGui",this,"LoadFile()");
@@ -144,6 +154,7 @@ void TStrawGui::DoDrawNext()
  	ft_selector->GetEntry(currEntry);
  }
  ft_selector->SetCurrentEntryNumber(currEntry);
+ sg->DrawTrack(ft_selector->a,ft_selector->b);
  fCanvas->Modified();//refresh canvas
  fCanvas->Update();//refresh canvas
  return;
@@ -181,7 +192,7 @@ void TStrawGui::DoDrawPrev()
 
 void TStrawGui::InitSelector(){
 TTree *tree_buff;
-fileObj->GetObject("FOTRAC",tree_buff); //reading tree from buff
+fileObj->GetObject(fTextEntryNtupleName->GetText(),tree_buff); //reading tree from buff
 ft_selector = new TFotracSelector(tree_buff);
 
 }

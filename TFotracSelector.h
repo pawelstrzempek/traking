@@ -11,7 +11,9 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
-
+#include <string>
+#include <iostream>
+#include <TH1F.h>
 // Header file for the classes stored in the TTree if any.
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
@@ -30,6 +32,17 @@ public :
    Double_t        X;
    Double_t        Z;
 
+   Int_t           globEvNum_out;
+   Int_t           chNum_out;
+   Double_t        ftTDC2_out;
+   Double_t        ToT_out;
+   Double_t        driftR_out;
+   Double_t        X_out;
+   Double_t        Z_out;
+
+   TH1F * diagEff_ft96;
+   TH1F * hitsMultiplicity;
+
    // List of branches
    TBranch        *b_globEvNum;   //!
    TBranch        *b_chNum;   //!
@@ -38,28 +51,35 @@ public :
    TBranch        *b_driftR;   //!
    TBranch        *b_X;   //!
    TBranch        *b_Z;   //!
+
+   // OtputFile 
+   TFile *out_file;
+
+   TTree *tree_out;
+
 	
    //**
-   unsigned current_event_number; //physical event. One event consist of several entries
+   //unsigned current_event_number; //physical event. One event consist of several entries
    unsigned current_entry_number; //entry in the tree
 
    TFotracSelector(TTree *tree=0);
+   TFotracSelector(TTree *tree,std::string);
    virtual ~TFotracSelector();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop();
+   virtual void     LoopFt96(unsigned);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    Long64_t 	    GetEntries();
+   void SaveDiagnosticHistograms();
 
-
-   unsigned GetCurrentEventNumber(){ return current_event_number;}
+/*   unsigned GetCurrentEventNumber(){ return current_event_number;}
    void IncCurrentEventNumber(){current_event_number++;}
    void DecCurrentEventNumber(){current_event_number--;}
    void SetCurrentEventNumber(unsigned current_event) {current_event_number = current_event;}
-
+*/
    unsigned GetCurrentEntryNumber(){ return current_entry_number;}
    void IncCurrentEntryNumber(){current_entry_number++;}
    void DecCurrentEntryNumber(){current_entry_number--;}
@@ -70,7 +90,16 @@ public :
 #endif
 
 #ifdef TFotracSelector_cxx
+
 TFotracSelector::TFotracSelector(TTree *tree) : fChain(0) 
+{
+   current_entry_number = 1;
+   Init(tree);
+
+}
+
+
+TFotracSelector::TFotracSelector(TTree *tree, std::string fname) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -82,15 +111,31 @@ TFotracSelector::TFotracSelector(TTree *tree) : fChain(0)
 //      f->GetObject("FOTRAC",tree);
 
 //   }
-   current_event_number = 0;
+//   current_event_number = 0;
    current_entry_number = 1;
    Init(tree);
+   out_file = new TFile(fname.c_str(),"RECREATE");
+   std::cout<<"Creating ouput file: "<<fname<<std::endl;
+   tree_out = new TTree("FOTRAC_PR","Forward trakers calibrated and pattern recognition done");
+   tree_out->Branch("globEvNum", &globEvNum_out);
+   tree_out->Branch("chNum", &chNum_out);
+   tree_out->Branch("ftTDC2", &ftTDC2_out);
+   tree_out->Branch("ToT", &ToT_out);
+   tree_out->Branch("driftR", &driftR_out);
+   tree_out->Branch("X", &X_out);
+   tree_out->Branch("Z", &Z_out);
+
+
+   diagEff_ft96 = new TH1F("diagEff_ft96","diagEff_ft96",10,0,10);
+   hitsMultiplicity = new TH1F("hitsMultiplicity","straws fired per event", 30, 0, 30);
+
 }
 
 TFotracSelector::~TFotracSelector()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
+   out_file->Close();
 }
 
 Int_t TFotracSelector::GetEntry(Long64_t entry)
@@ -168,6 +213,12 @@ Long64_t TFotracSelector:: GetEntries(){
 return fChain->GetEntries();
 }
 
+void TFotracSelector::SaveDiagnosticHistograms(){
+ diagEff_ft96->Write();
+ hitsMultiplicity->Write();
+
+ std::cout<<"Dignostic histograms saved\n";
+}
 
 
 

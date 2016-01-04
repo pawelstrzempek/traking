@@ -4,6 +4,7 @@
 #include <iostream>
 #include <TCanvas.h>
 #include <TFile.h>
+#include <TLine.h>
 
 class TStrawGeometry{
 std::list<TStrawModule*> modules;
@@ -28,6 +29,8 @@ public:
 	void Draw(double x_shift, double y_shift);//, double scale_factor);
 	void MarkDriftRadius(unsigned channel_number, double dr);
 	void Clear();
+	void DrawTrack(double a, double b);
+
 };
 
 void TStrawGeometry::AttachModule(TStrawModule *sm){
@@ -97,6 +100,8 @@ return;
 
 
 void TStrawGeometry::Clear(){
+//!! TODO: make it more generic
+
  for(int ch =1; ch < 97 ; ch++){
  MarkDriftRadius(ch,0);
  }
@@ -104,4 +109,10 @@ void TStrawGeometry::Clear(){
 
 }
 
+void TStrawGeometry::DrawTrack(double a, double b){
 
+//!! TODO: make it more generic
+TLine *line = new TLine(0*scale_factor,a*scale_factor*0+b,20*scale_factor,20*scale_factor*a+b);
+line->Draw();
+return;
+}

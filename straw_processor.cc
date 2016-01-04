@@ -21,16 +21,18 @@ void straw_processor(const char* fileName, unsigned eventsQty = 1000000){
  //** create selector for the FOTRA tree. Selector second argument is the name of the output file.
  string  out_file_name = fileName;
  out_file_name = out_file_name.substr(0, out_file_name.size() - 5);
- out_file_name += "C.root"; //resulting inj outfile name: 'in_fileName_FOTRAC.root'
+ out_file_name += "C.root"; //resulting in outfile name: 'in_fileName_FOTRAC.root'
  TFotraSelector selector(tree,out_file_name);
  std::cout<<"Selector created\n";
  //** create the calibration module and attach it to the ntuple selector (TFotraSelector which iterates 
  //** event by event and rewrites them to the new ntuple FOTRAC.
- // TStrawCalibration *clibratinModule new TStrawCalibration(int channelsQty, TH2F* dt_all, unsigned t0_param, unsigned tk_param, double r_tube, double r_wire);
  TH2F *dt_all = (TH2F*)f->Get("dt_barcode");
+ //** constructing the calibration object. It contains number of straws, pointer to 3D histogram which is then projected 
+ //** as drift time sum spectrum. Then we have to percangates the % of dt sum spectrum counts which are consider to be
+ //** before to and the % of dt sum spectrum counts which are consider to be after the spectrum ends. To final arguments
+ //** are the straw radius in [mm] and the anode wire in [mm].
  TStrawCalibration *clibratinModule = new TStrawCalibration(96, dt_all, 1, 97, 5.05, 0.02); //the unit is mm
  selector.AttachCalibration(clibratinModule);
-// clibratinModule->SaveDiagnosticHistograms(f);
  //** create straw detector geometry
  //** FT consist of 3 moldules each has 32 straws
  //TStrawModule::TStrawModule(double x_coordinate, double y_coordinate, double angle_rotation, unsigned int x, unsigned int y, double straw_radius)
@@ -41,13 +43,12 @@ void straw_processor(const char* fileName, unsigned eventsQty = 1000000){
  TStrawGeometry *sg = new TStrawGeometry(ft1,0.004); //second argument is scaling factor
  sg ->AttachModule(ft2);
  sg ->AttachModule(ft3);
-std::cout<<"Geometry attached\n";
  selector.AttachGeometry(sg);
+ std::cout<<"Geometry attached\n";
 
 ///TFotraSelector selector(tree);
-std::cout<<"Entering main loop\n";
-selector.Loop(eventsQty);
-
+ std::cout<<"Entering main loop\n";
+ selector.Loop(eventsQty);
 
 
 
