@@ -9,6 +9,10 @@
 class TStrawGeometry{
 std::list<TStrawModule*> modules;
 double scale_factor;
+unsigned straws_qty;
+double x_shift;
+double y_shift;
+TLine *line; 
 public:
 	
 
@@ -16,8 +20,12 @@ public:
   //      modules.push_front(sm);
 //	}
         TStrawGeometry(TStrawModule *sm, double sf){
-        modules.push_front(sm);
-	scale_factor = sf;
+         modules.push_front(sm);
+	 scale_factor = sf;
+	 straws_qty = sm->GetNumberOfStraws();
+	 line = new TLine(0,0,1,1);
+	 x_shift = 0;
+	 y_shift = 0;
 	}
 
 
@@ -35,6 +43,7 @@ public:
 
 void TStrawGeometry::AttachModule(TStrawModule *sm){
         modules.push_back(sm);
+	straws_qty += sm->GetNumberOfStraws();
 }
 
 std::pair<double,double> TStrawGeometry::GetChannelCoordinance(unsigned channelNumber){
@@ -79,7 +88,9 @@ return;
 
 
 //void TStrawGeometry::Draw(double x_shift, double y_shift, double scale_factor){
-void TStrawGeometry::Draw(double x_shift, double y_shift){
+void TStrawGeometry::Draw(double x_shift_in, double y_shift_in){
+ x_shift = x_shift_in;
+ y_shift = y_shift_in;
  for (std::list<TStrawModule*>::iterator it = modules.begin(); it != modules.end(); it++){
          (*it)->Draw(x_shift, y_shift,scale_factor);
  }
@@ -100,9 +111,7 @@ return;
 
 
 void TStrawGeometry::Clear(){
-//!! TODO: make it more generic
-
- for(int ch =1; ch < 97 ; ch++){
+ for(unsigned ch =1; ch < (straws_qty+1) ; ch++){
  MarkDriftRadius(ch,0);
  }
 
@@ -112,7 +121,14 @@ void TStrawGeometry::Clear(){
 void TStrawGeometry::DrawTrack(double a, double b){
 
 //!! TODO: make it more generic
-TLine *line = new TLine(0*scale_factor,a*scale_factor*0+b,20*scale_factor,20*scale_factor*a+b);
+//line = new TLine(0*scale_factor,a*scale_factor*0+b,20*scale_factor,20*scale_factor*a+b);
+line->SetX1(((y_shift-b)/(a) + x_shift)*scale_factor);
+line->SetY1(y_shift*scale_factor);
+line->SetX2(((200+y_shift-b)/(a) + x_shift)*scale_factor);
+line->SetY2((200+y_shift)*scale_factor);
+//std::cout<<"\nx1="<<(-b/a)*scale_factor<<" y1=0 x2="<<((200-b)/a)*scale_factor<<" y2="<<200*scale_factor<<"===========\n";
+std::cout<<"\nx1="<<line->GetX1()<<" y1="<<line->GetY1()<<" x2="<<line->GetX2()<<" y2="<<line->GetY2()<<"===========\n";
+
 line->Draw();
 return;
 }

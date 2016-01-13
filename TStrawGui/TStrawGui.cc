@@ -26,17 +26,7 @@ fMain = new TGMainFrame(p,w,h);
 fEcanvas = new TRootEmbeddedCanvas("Ecanvas",fMain,800,800);
 fMain->AddFrame(fEcanvas, new TGLayoutHints(kLHintsExpandX| kLHintsExpandY,10,10,10,1));
 TCanvas *tmp = fEcanvas->GetCanvas();
-//tmp->Divide(7,4,0.001,0.001);
-/*
-SS1 = new TStrawMap(16,2);
-SS1->Draw(0.05,0.05);
 
-SS2 = new TStrawMap(16,2);
-SS2->Draw(0.05,22*(SS1->GetStrawRadius())+0.05);
-
-SS3 = new TStrawMap(16,2);
-SS3->Draw(0.05,2*22*(SS1->GetStrawRadius())+0.05);
-*/
 ft1 = new TStrawModule(0.,0.,0.,32,1,5.05);
 ft2 = new TStrawModule(0.,100.,0.,32,1,5.05);
 ft3 = new TStrawModule(0.,200.,0.,32,1,5.05);
@@ -76,7 +66,8 @@ fTextEntryFilePath->SetAlignment(kTextLeft);
 //fTextEntryFilePath->SetText("fTextEntryFilePath");
 fTextEntryFilePath->Resize(93,fTextEntryFilePath->GetDefaultHeight());
 fMain->AddFrame(fTextEntryFilePath, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC.root");
+fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC_PR_TF.root");
+//fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC.root");
 fTextEntryFilePath->MoveResize(304,520,550,22);
 
 fTextEntryNtupleName = new TGTextEntry(fMain, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kOwnBackground);
@@ -84,7 +75,7 @@ fTextEntryNtupleName->SetMaxLength(64);
 fTextEntryNtupleName->SetAlignment(kTextLeft);
 fTextEntryNtupleName->Resize(93,fTextEntryFilePath->GetDefaultHeight());
 fMain->AddFrame(fTextEntryNtupleName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-fTextEntryNtupleName->SetText("FOTRAC");
+fTextEntryNtupleName->SetText("FOTRAC_PR_TF");
 fTextEntryNtupleName->MoveResize(804,520,150,22);
 
 
@@ -136,25 +127,51 @@ void TStrawGui::DoDrawNext()
  sg->Clear();
  TCanvas *fCanvas = fEcanvas->GetCanvas();
  eventNumberDisplay->SetNumber(eventNumberDisplay->GetNumber() + 1 );
- unsigned currEntry = ft_selector->GetCurrentEntryNumber();
+ unsigned currEntry = 0; 
  unsigned currEvent = eventNumberDisplay->GetNumber()  ; //= ft_selector->GetCurrentEventNumber()+1;
-
- if(currEntry > ft_selector->GetEntries())
-	return;
-
- ft_selector->GetEntry(currEntry);
- while(currEvent >= ft_selector->globEvNum)
+ if(ft_tf_flag == 0)
  {
- 	std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
- 	ft_selector->Show(currEntry);
-	sg->MarkDriftRadius(ft_selector->chNum, ft_selector->driftR); 
-	currEntry++;
+ 	currEntry = ft_selector->GetCurrentEntryNumber();
  	if(currEntry > ft_selector->GetEntries())
-		break;
+		return;
+
  	ft_selector->GetEntry(currEntry);
+ 	while(currEvent >= ft_selector->globEvNum)
+ 	{
+ 		std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
+ 		ft_selector->Show(currEntry);
+		sg->MarkDriftRadius(ft_selector->chNum, ft_selector->driftR); 
+		currEntry++;
+ 		if(currEntry > ft_selector->GetEntries())
+			break;
+ 		ft_selector->GetEntry(currEntry);
+ 	}
+ 	ft_selector->SetCurrentEntryNumber(currEntry);
+ 	//sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b);
  }
- ft_selector->SetCurrentEntryNumber(currEntry);
- sg->DrawTrack(ft_selector->a,ft_selector->b);
+ else
+ {
+        currEntry = ft_tf_selector->GetCurrentEntryNumber();
+        if(currEntry > ft_tf_selector->GetEntries())
+                return;
+
+        ft_tf_selector->GetEntry(currEntry);
+        while(currEvent >= ft_tf_selector->globEvNum)
+        {
+                //std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_tf_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
+                //ft_tf_selector->Show(currEntry);
+		std::cout<<ft_tf_selector->X<<","<<ft_tf_selector->Z<<std::endl;
+                sg->MarkDriftRadius(ft_tf_selector->chNum, ft_tf_selector->driftR);
+                currEntry++;
+                if(currEntry > ft_tf_selector->GetEntries())
+                        break;
+                ft_tf_selector->GetEntry(currEntry);
+        }
+	ft_tf_selector->Show(currEntry-1);//-1
+        ft_tf_selector->SetCurrentEntryNumber(currEntry);
+        sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b);
+ }
+
  fCanvas->Modified();//refresh canvas
  fCanvas->Update();//refresh canvas
  return;
@@ -170,21 +187,45 @@ void TStrawGui::DoDrawPrev()
  unsigned currEntry = ft_selector->GetCurrentEntryNumber();
  unsigned currEvent = eventNumberDisplay->GetNumber()  ; //= ft_selector->GetCurrentEventNumber()+1;
 
- if(currEntry < 1)
-	return;
-
- ft_selector->GetEntry(currEntry);
- while(currEvent <= ft_selector->globEvNum)
+ if(ft_tf_flag == 0){
+	 currEntry = ft_selector->GetCurrentEntryNumber();
+	 if(currEntry < 1)
+		return;
+	
+	 ft_selector->GetEntry(currEntry);
+	 while(currEvent <= ft_selector->globEvNum)
+	 {
+	        std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
+	        ft_selector->Show(currEntry);
+		sg->MarkDriftRadius(ft_selector->chNum, ft_selector->driftR); 
+	        currEntry--;
+		if(currEntry<1)
+			break;
+	        ft_selector->GetEntry(currEntry);
+	 }
+	 ft_selector->SetCurrentEntryNumber(currEntry);
+ } 
+ else
  {
-        std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
-        ft_selector->Show(currEntry);
-	sg->MarkDriftRadius(ft_selector->chNum, ft_selector->driftR); 
-        currEntry--;
-	if(currEntry<1)
-		break;
-        ft_selector->GetEntry(currEntry);
+         currEntry = ft_tf_selector->GetCurrentEntryNumber();
+         if(currEntry < 1)
+                return;
+
+         ft_tf_selector->GetEntry(currEntry);
+         while(currEvent <= ft_tf_selector->globEvNum)
+         {
+                std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_tf_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
+                ft_tf_selector->Show(currEntry);
+                sg->MarkDriftRadius(ft_tf_selector->chNum, ft_tf_selector->driftR);
+                currEntry--;
+                if(currEntry<1)
+                        break;
+                ft_tf_selector->GetEntry(currEntry);
+         }
+         ft_tf_selector->SetCurrentEntryNumber(currEntry);
+	 sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b);
  }
- ft_selector->SetCurrentEntryNumber(currEntry);
+
  fCanvas->Modified();//refresh canvas
  fCanvas->Update();//refresh canvas
  return;
@@ -192,9 +233,19 @@ void TStrawGui::DoDrawPrev()
 
 void TStrawGui::InitSelector(){
 TTree *tree_buff;
-fileObj->GetObject(fTextEntryNtupleName->GetText(),tree_buff); //reading tree from buff
-ft_selector = new TFotracSelector(tree_buff);
-
+//** chacking which selector to create
+std::string buffer = fTextEntryNtupleName->GetText();
+ if(buffer.compare(buffer.size()-2,2,"TF") != 0){
+	fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
+	ft_selector = new TFotracSelector(tree_buff);
+	ft_tf_flag = 0;
+ }
+ else{
+        fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
+        ft_tf_selector = new TFotractfSelector(tree_buff);
+	ft_tf_flag = 1;
+ }
+	
 }
 
 void TStrawGui::LoadFile(){

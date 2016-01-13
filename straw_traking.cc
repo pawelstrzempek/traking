@@ -2,7 +2,7 @@
 #include <TTree.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "TFotrackerSelector.cc"
+#include "TFotracprSelector.cc"
 #include <iostream>
 
 //** This module is suppose to do pattern recognition. For the moment it makes just simple 
@@ -21,12 +21,11 @@ void straw_tracking(const char* fileName, unsigned eventsQty = 1000000){
  string  out_file_name = fileName;
  out_file_name = out_file_name.substr(0, out_file_name.size() - 5);
  out_file_name += "_TF.root"; //resulting in outfile name: 'in_fileName_FOTRAC.root'
- TFotrackerSelector selector(tree,out_file_name);
+ TFotracprSelector selector(tree,out_file_name);
  std::cout<<" FOTRAC_PR selector created\n";
 
  std::cout<<"Entering main loop\n";
  selector.LoopTraking(eventsQty);
-
  
 
 

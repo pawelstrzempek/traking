@@ -108,7 +108,8 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
 	// tot barcode over channels
   tot_barcode = new TH2F("tot_barcode", "tot_barcode", 10000, 0, 1000, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
   dt_barcode = new TH2F("dt_barcode", "dt_barcode", DT_BINS, DT_MIN, DT_MAX, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
-  dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", DT_BINS, DT_MIN, DT_MAX, TOT_BINS,TOT_MIN,TOT_MAX);
+  //dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", DT_BINS, DT_MIN, DT_MAX, TOT_BINS,TOT_MIN,TOT_MAX);
+  dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", 2000, -500, 500, 2200,-100,1000);
   //plane2eff = new TH1F("plane2eff","plane2eff",6,0,6);
   //planemult3 = new TH1F("planemult3","planemult3",5,0,5);
   //planemult3x1 = new TH1F("planemult3x1","planemult3x1",5,0,5);

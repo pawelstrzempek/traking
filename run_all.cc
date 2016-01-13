@@ -10,7 +10,7 @@
 
 
 void straw_processor(const char* fileName, unsigned int = 1000000);
-int straw_preprocessor(int eventsNum, const char* fileName, int referenceChannel = 51);
+int straw_preprocessor(int eventsNum, const char* fileName, int referenceChannel = 148);
 void straw_pattern_recognition(const char* fileName, unsigned int = 1000000);
 
 
