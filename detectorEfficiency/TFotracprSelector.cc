@@ -2,7 +2,7 @@
 #include <TLinearFitter.h>
 #include <TF1.h>
 #include <iostream>
-
+#include <TH1F.h>
 
 
 class TFotracprSelector: public TFotracSelector{
@@ -13,10 +13,16 @@ public:
 	double b_err;
 	TLinearFitter *lf;
  	TF1 *f1;
+	TH1F *eff;
+	TH1F *deltaX; //the distance between the reconstructed prefit and straw center belonging to the track reconstructed
+	TH1F *strawIllumination; // number of hits per straw in the middle layer
+
+	double FT2_1_Z_coord;
+	double FT2_2_Z_coord;
 
 TFotracprSelector(TTree *tree, std::string fname);
-TFotracprSelector(TTree *tree);
-void LoopTraking(unsigned eventsQty);
+void LoopTraking(unsigned eventsQty, unsigned bin_shift = 0);
+void SetTree(TTree *tree);
 
 ~TFotracprSelector(){
 	out_file->Close();
@@ -26,26 +32,24 @@ void LoopTraking(unsigned eventsQty);
 };
 
 
-TFotracprSelector::TFotracprSelector(TTree *tree)
-{
-   current_entry_number = 1;
-   Init(tree);
+void TFotracprSelector::SetTree(TTree *tree){
+ Init(tree);
+ current_entry_number = 1;
+ return;
 }
 
-TFotracprSelector::TFotracprSelector(TTree *tree, std::string fname)
+TFotracprSelector::TFotracprSelector(TTree *tree, std::string fname) 
 {
+//** USER DEFINED COORDINANCE OF LAYERS:
+   FT2_1_Z_coord = 91.26;
+   FT2_2_Z_coord = 100;
+//**===================================
    f1 = new TF1("f1","pol1");
    lf = new TLinearFitter(f1);
    current_entry_number = 1;
    Init(tree);
-   if(fname != ""){
-        out_file = new TFile(fname.c_str(),"RECREATE");
-        std::cout<<"Creating ouput file: "<<fname<<std::endl;
-   }
-   else
-   {
-        std::cout<<"Ouput file not created"<<std::endl;
-   }
+   out_file = new TFile(fname.c_str(),"RECREATE");
+   std::cout<<"Creating ouput file: "<<fname<<std::endl;
    tree_out = new TTree("FOTRAC_PR_TF","Forward trakers calibrated, patter recognition, track fitted");
    tree_out->Branch("globEvNum", &globEvNum_out);
    tree_out->Branch("chNum", &chNum_out);
@@ -60,10 +64,12 @@ TFotracprSelector::TFotracprSelector(TTree *tree, std::string fname)
    tree_out->Branch("a_err", &a_err);
    tree_out->Branch("b_err", &b_err);
 
+   eff = new TH1F("efficiency","Bin1: all hits, bin2: layer1 or layer2, bin3: layer1 and layer2",15,0,15);
+   deltaX = new TH1F("deltaX","the distance between the reconstructed prefit and straw center belonging to the track reconstructed",320,-160,160);
+   strawIllumination = new TH1F("strawIllumination", "number of hits per straw in the middle layer",100,-1,99);
 }
 
-
-void TFotracprSelector::LoopTraking(unsigned eventsQty)
+void TFotracprSelector::LoopTraking(unsigned eventsQty, unsigned bin_shift )
 {
 //** Important remark. This method is calculating the linear fit parameters performed on the straws
 //** wire positions. As the TLinearfitter does not work correctly on the wire position in real configuration
@@ -72,6 +78,7 @@ void TFotracprSelector::LoopTraking(unsigned eventsQty)
 
 
 std::vector<entryHolder> entriesVector;
+std::vector<entryHolder> entriesFT2;
 
    if (fChain == 0) return;
 
@@ -117,18 +124,66 @@ std::vector<entryHolder> entriesVector;
                    tree_out->Fill();
                 }
 	//	std::cout<<currentEvent<<": a_org="<<lf->GetParameter(0)<<"  b_org="<<lf->GetParameter(1)<<"  a="<<a<<"  b="<<b<<"\n";
-                entriesVector.clear();
                 local_event_counter++;
 		//lf->Eval();
 		//std::cout<<"a="<<lf->GetParameter(0)<<"  b="<<lf->GetParameter(1)<<std::endl;
 		lf->ClearPoints();
+	//** at this stage we have line fitted to hits in ft1 and ft3. We check if hits from ft2 (stored in entriesFT2) belog to fitted track.
+		double x_ft2_2 = a*(FT2_2_Z_coord)+b;//(FT2_2_Z_coord-b)/a;//ay+b   //x coordinate of track crossing upper layer of FT2	
+		double x_ft2_1 = a*(FT2_1_Z_coord)+b;//(FT2_1_Z_coord-b)/a; //x coordinate of track crossing lower layer of FT2	
+		bool lay1_hit = false;
+		bool lay2_hit = false;
+		for (unsigned j=0; j<entriesFT2.size(); j++){
+			if( (entriesFT2[j]).s_Z == FT2_2_Z_coord){//** hit in upper layer
+				if( (entriesFT2[j]).s_X < x_ft2_2+25 && (entriesFT2[j]).s_X > x_ft2_2-25 )
+					lay2_hit = true;
+			//	 std::cout<<"ft2_2: "<<(entriesFT2[j]).s_Z<<std::endl;
+				deltaX->Fill(x_ft2_2-(entriesFT2[j]).s_X);
+			}
+			else //** hit in lower layer
+			{
+			        if( (entriesFT2[j]).s_X < x_ft2_1+25 && (entriesFT2[j]).s_X > x_ft2_1-25 )
+                                        lay1_hit = true;
+			//	 std::cout<<"ft2_1: "<<(entriesFT2[j]).s_Z<<std::endl;
+				deltaX->Fill(x_ft2_1-(entriesFT2[j]).s_X);
+			}
+//		strawIllumination->Fill((entriesFT2[j]).s_chNum );
+		}
+		
+		std::cout<<"check eff: a="<<a<<" b="<<b<<" x1="<<x_ft2_1<<" x2="<<x_ft2_2<<std::endl;
+
+	//** eliminate cases with the faulty straw number 60
+		if( 136.5 > x_ft2_1+25 || 136.5 < x_ft2_1-25 ){
+			eff->Fill(1+bin_shift);
+			if(lay1_hit || lay2_hit)
+				eff->Fill(2+bin_shift);
+			if(lay1_hit && lay2_hit)
+				eff->Fill(3+bin_shift);
+		}
+
+	//** we clear the buffers:
+                entriesVector.clear();
+                entriesFT2.clear();
       }
         entryHolder eh = {globEvNum, chNum, ftTDC2, ToT, driftR, X, Z};
         entriesVector.push_back(eh);
 	//** lf->AddPoint(&X,Z); //original coordinance must be change to:
-	lf->AddPoint(&Z,X);
-   }
-   tree_out->Write();
+	strawIllumination->Fill(chNum);
 
+	//** we add only points from boarder modules (FT1 and FT3). For them Z is 0, -8 and 192 and 200
+	if(Z<(FT2_1_Z_coord-10) || Z > (FT2_2_Z_coord+10)){
+		lf->AddPoint(&Z,X);
+	}
+	else
+	{
+		entriesFT2.push_back(eh);
+	}
+
+   }
+   out_file->cd();
+   tree_out->Write();
+   deltaX->Write();
+   strawIllumination->Write();
+   eff->Write();
 }
 

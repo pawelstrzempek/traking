@@ -12,7 +12,7 @@ double scale_factor;
 unsigned straws_qty;
 double x_shift;
 double y_shift;
-TLine *line; 
+TLine *line[2]; 
 public:
 	
 
@@ -23,7 +23,9 @@ public:
          modules.push_front(sm);
 	 scale_factor = sf;
 	 straws_qty = sm->GetNumberOfStraws();
-	 line = new TLine(0,0,1,1);
+	 line[0] = new TLine(0,0,1,1);
+	 line[1] = new TLine(0,0,1,1);
+	 line[1]->SetLineColor(2);
 	 x_shift = 0;
 	 y_shift = 0;
 	}
@@ -37,7 +39,7 @@ public:
 	void Draw(double x_shift, double y_shift);//, double scale_factor);
 	void MarkDriftRadius(unsigned channel_number, double dr);
 	void Clear();
-	void DrawTrack(double a, double b);
+	void DrawTrack(double a, double b, unsigned select);
 
 };
 
@@ -118,17 +120,18 @@ void TStrawGeometry::Clear(){
 
 }
 
-void TStrawGeometry::DrawTrack(double a, double b){
-
+void TStrawGeometry::DrawTrack(double a, double b, unsigned select){
+if(select != 0 && select != 1)
+	return;
 //!! TODO: make it more generic
 //line = new TLine(0*scale_factor,a*scale_factor*0+b,20*scale_factor,20*scale_factor*a+b);
-line->SetX1(((y_shift-b)/(a) + x_shift)*scale_factor);
-line->SetY1(y_shift*scale_factor);
-line->SetX2(((200+y_shift-b)/(a) + x_shift)*scale_factor);
-line->SetY2((200+y_shift)*scale_factor);
+line[select]->SetX1(((y_shift-b)/(a) + x_shift)*scale_factor);
+line[select]->SetY1(y_shift*scale_factor);
+line[select]->SetX2(((200+y_shift-b)/(a) + x_shift)*scale_factor);
+line[select]->SetY2((200+y_shift)*scale_factor);
 //std::cout<<"\nx1="<<(-b/a)*scale_factor<<" y1=0 x2="<<((200-b)/a)*scale_factor<<" y2="<<200*scale_factor<<"===========\n";
-std::cout<<"\nx1="<<line->GetX1()<<" y1="<<line->GetY1()<<" x2="<<line->GetX2()<<" y2="<<line->GetY2()<<"===========\n";
+std::cout<<"\nx1="<<line[select]->GetX1()<<" y1="<<line[select]->GetY1()<<" x2="<<line[select]->GetX2()<<" y2="<<line[select]->GetY2()<<"===========\n";
 
-line->Draw();
+line[select]->Draw();
 return;
 }

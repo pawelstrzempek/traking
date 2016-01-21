@@ -1,4 +1,4 @@
-#include <TStrawGui.cpp>
+#include <TStrawGui.cc>
 
 
 void runGui()

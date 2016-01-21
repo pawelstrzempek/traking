@@ -44,7 +44,7 @@ TH2F* dt_vs_tot;
 //TH1F* refTimesDiff;
 TH1F* deadChannelsMap;
 
-int DC[] = {8,12,61,71,81};
+int DC[] = {8,12,61,66,71,81}; //66 is a new channel
 std::vector<int> deadChannels (DC,DC+sizeof(DC)/sizeof(int));
 std::vector<int>::iterator it;
 

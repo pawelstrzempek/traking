@@ -8,7 +8,8 @@
 #include <TGTextEntry.h>
 #include <TGNumberEntry.h>
 //#include "./../TFotracSelector.cc"
-#include "./../TFotractfSelector.cc"
+//#include "./../TFotracprtfSelector.cc"
+#include "./../TFotracprtfpSelector.cc"
 #include <TGLabel.h>
 
 class TGWindow;
@@ -20,7 +21,7 @@ private:
 TGMainFrame *fMain;
 TRootEmbeddedCanvas *fEcanvas;
 
-unsigned ft_tf_flag;
+int ft_selector_flag;
 
 TStrawModule *ft1; 
 TStrawModule *ft2; 
@@ -29,7 +30,8 @@ TStrawModule *ft3;
 TStrawGeometry *sg; //pointer to obj storing geometry
 
 TFotracSelector* ft_selector; //pointer to obj which iterates through nTuple. Containst channels and drift radius
-TFotractfSelector* ft_tf_selector; // nTuple the same as the ft_selector but has tracks fitted
+TFotracprtfSelector* ft_prtf_selector; // nTuple the same as the ft_selector but has tracks fitted
+//TFotracprtpfSelector* ft_prtfp_selector; // nTuple the same as the ft_selector but has tracks fitted
 
 
 TGTextEntry *fTextEntryNtupleName;

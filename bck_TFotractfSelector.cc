@@ -19,10 +19,6 @@ public:
    Double_t        b;
    Double_t        a_err;
    Double_t        b_err;
-   Double_t	   a_mi; 
-   Double_t        b_mi; 
-   Double_t        chi;
-
 
    // List of branches
    TBranch        *b_globEvNum;   //!
@@ -36,9 +32,6 @@ public:
    TBranch        *b_b;   //!
    TBranch        *b_a_err;   //!
    TBranch        *b_b_err;   //!
-   TBranch        *b_a_mi;   //!
-   TBranch        *b_b_mi;   //!
-   TBranch        *b_chi;   //!
 
 
 TFotractfSelector(TTree *tree);
@@ -82,8 +75,5 @@ void TFotractfSelector::Init(TTree *tree)
    fChain->SetBranchAddress("b", &b, &b_b);
    fChain->SetBranchAddress("a_err", &a_err, &b_a_err);
    fChain->SetBranchAddress("b_err", &b_err, &b_b_err);
-   fChain->SetBranchAddress("a_mi", &a_mi, &b_a_mi);
-   fChain->SetBranchAddress("b_mi", &b_mi, &b_b_mi);
-   fChain->SetBranchAddress("chi", &chi, &b_chi);
    Notify();
 }

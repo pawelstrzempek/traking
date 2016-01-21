@@ -66,7 +66,7 @@ fTextEntryFilePath->SetAlignment(kTextLeft);
 //fTextEntryFilePath->SetText("fTextEntryFilePath");
 fTextEntryFilePath->Resize(93,fTextEntryFilePath->GetDefaultHeight());
 fMain->AddFrame(fTextEntryFilePath, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC_PR_TF.root");
+fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC_PR_TFP.root");
 //fTextEntryFilePath->SetText("/home/pandastraws/hldFiles/asicSource/cosmics/1800V/cosmics1800_FOTRAC.root");
 fTextEntryFilePath->MoveResize(304,520,550,22);
 
@@ -75,7 +75,7 @@ fTextEntryNtupleName->SetMaxLength(64);
 fTextEntryNtupleName->SetAlignment(kTextLeft);
 fTextEntryNtupleName->Resize(93,fTextEntryFilePath->GetDefaultHeight());
 fMain->AddFrame(fTextEntryNtupleName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-fTextEntryNtupleName->SetText("FOTRAC_PR_TF");
+fTextEntryNtupleName->SetText("FOTRAC_PR_TFP");
 fTextEntryNtupleName->MoveResize(804,520,150,22);
 
 
@@ -123,13 +123,17 @@ delete fMain;
 }
 void TStrawGui::DoDrawNext() 
 {
- if(fileObj == 0) return;
+ if(fileObj == 0) 
+	return;
+ if(ft_selector_flag == -1)
+	return;
+
  sg->Clear();
  TCanvas *fCanvas = fEcanvas->GetCanvas();
  eventNumberDisplay->SetNumber(eventNumberDisplay->GetNumber() + 1 );
- unsigned currEntry = 0; 
- unsigned currEvent = eventNumberDisplay->GetNumber()  ; //= ft_selector->GetCurrentEventNumber()+1;
- if(ft_tf_flag == 0)
+ int currEntry = 0; 
+ int currEvent = eventNumberDisplay->GetNumber()  ; //= ft_selector->GetCurrentEventNumber()+1;
+ /*if(ft_selector_flag == 0)
  {
  	currEntry = ft_selector->GetCurrentEntryNumber();
  	if(currEntry > ft_selector->GetEntries())
@@ -151,26 +155,39 @@ void TStrawGui::DoDrawNext()
  }
  else
  {
-        currEntry = ft_tf_selector->GetCurrentEntryNumber();
-        if(currEntry > ft_tf_selector->GetEntries())
+   */     currEntry = ft_selector->GetCurrentEntryNumber();
+        if(currEntry > ft_selector->GetEntries())
                 return;
+	ft_selector->GetEntry(currEntry);
+        //PS ft_tf_selector->GetEntry(currEntry);
 
-        ft_tf_selector->GetEntry(currEntry);
-        while(currEvent >= ft_tf_selector->globEvNum)
+        while(currEvent >= ft_selector->globEvNum)
         {
                 //std::cout<<"=============>current event"<< currEvent<<"  selectorEvNum="<<ft_tf_selector->globEvNum<<"   |current entry="<<currEntry<<std::endl;
-                //ft_tf_selector->Show(currEntry);
-		std::cout<<ft_tf_selector->X<<","<<ft_tf_selector->Z<<std::endl;
-                sg->MarkDriftRadius(ft_tf_selector->chNum, ft_tf_selector->driftR);
+                ft_selector->Show(currEntry);
+		//std::cout<<ft_selector->X<<","<<ft_selector->Z<<std::endl;
+                sg->MarkDriftRadius(ft_selector->chNum, ft_selector->driftR);
                 currEntry++;
-                if(currEntry > ft_tf_selector->GetEntries())
+                if(currEntry > ft_selector->GetEntries())
                         break;
-                ft_tf_selector->GetEntry(currEntry);
+		ft_selector->GetEntry(currEntry);
+                //ft_tf_selector->GetEntry(currEntry);
         }
-	ft_tf_selector->Show(currEntry-1);//-1
+/*	ft_tf_selector->Show(currEntry-1);//-1
         ft_tf_selector->SetCurrentEntryNumber(currEntry);
-        sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b);
- }
+        sg->DrawTrack(1./(ft_tf_selector->a),-(ft_tf_selector->b/ft_tf_selector->a),0);
+*/	
+	ft_selector->Show(currEntry-1);//-1
+        ft_selector->SetCurrentEntryNumber(currEntry);
+	if(ft_selector_flag == 1)
+	        sg->DrawTrack(1./(((TFotracprtfSelector*)(ft_selector))->a),-(((TFotracprtfSelector*)(ft_selector))->b/((TFotracprtfSelector*)(ft_selector))->a),0);
+	
+	if(ft_selector_flag == 2){
+		sg->DrawTrack(1./(((TFotracprtfpSelector*)(ft_selector))->a),-(((TFotracprtfpSelector*)(ft_selector))->b/((TFotracprtfpSelector*)(ft_selector))->a),0);
+		sg->DrawTrack(1./(((TFotracprtfpSelector*)(ft_selector))->a_mi),-(((TFotracprtfpSelector*)(ft_selector))->b_mi/((TFotracprtfpSelector*)(ft_selector))->a_mi),1);
+	}
+
+// }
 
  fCanvas->Modified();//refresh canvas
  fCanvas->Update();//refresh canvas
@@ -187,7 +204,7 @@ void TStrawGui::DoDrawPrev()
  unsigned currEntry = ft_selector->GetCurrentEntryNumber();
  unsigned currEvent = eventNumberDisplay->GetNumber()  ; //= ft_selector->GetCurrentEventNumber()+1;
 
- if(ft_tf_flag == 0){
+/* if(ft_selector_flag == 0){
 	 currEntry = ft_selector->GetCurrentEntryNumber();
 	 if(currEntry < 1)
 		return;
@@ -223,9 +240,9 @@ void TStrawGui::DoDrawPrev()
                 ft_tf_selector->GetEntry(currEntry);
          }
          ft_tf_selector->SetCurrentEntryNumber(currEntry);
-	 sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b);
+	 sg->DrawTrack(ft_tf_selector->a,ft_tf_selector->b,0);
  }
-
+*/
  fCanvas->Modified();//refresh canvas
  fCanvas->Update();//refresh canvas
  return;
@@ -235,17 +252,30 @@ void TStrawGui::InitSelector(){
 TTree *tree_buff;
 //** chacking which selector to create
 std::string buffer = fTextEntryNtupleName->GetText();
- if(buffer.compare(buffer.size()-2,2,"TF") != 0){
+if(buffer.compare(buffer.size()-2,2,"PR") == 0){
 	fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
 	ft_selector = new TFotracSelector(tree_buff);
-	ft_tf_flag = 0;
+	ft_selector_flag = 0;
+	std::cout<<"Selector created\n";	
+ }
+ else if (buffer.compare(buffer.size()-2,2,"TF") == 0){
+        fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
+        ft_selector = new TFotracprtfSelector(tree_buff,"");
+	ft_selector_flag = 1;
+	std::cout<<"Selector created\n";	
+ }else if(buffer.compare(buffer.size()-2,2,"FP") == 0){
+        fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
+        ft_selector = new TFotracprtfpSelector(tree_buff);
+        ft_selector_flag = 2;
+	std::cout<<"Selector created\n";	
  }
  else{
-        fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
-        ft_tf_selector = new TFotractfSelector(tree_buff);
-	ft_tf_flag = 1;
+	ft_selector_flag = -1;
+	std::cout<<"Could not recognize file with nTuple\n";
  }
-	
+
+//fileObj->GetObject(buffer.c_str(),tree_buff); //reading tree from buff
+//ft_prtf_selector = new TFotracprtfSelector(tree_buff,"");
 }
 
 void TStrawGui::LoadFile(){
