@@ -40,7 +40,7 @@ void straw_processor(const char* fileName, unsigned eventsQty = 1000000){
  TStrawModule *ft2 = new TStrawModule(0.,100.,0.,32,1,5.05);
  TStrawModule *ft3 = new TStrawModule(0.,200.,0.,32,1,5.05);
 
- TStrawGeometry *sg = new TStrawGeometry(ft1,0.004); //second argument is scaling factor
+ TStrawGeometry *sg = new TStrawGeometry(ft1,0.004); //second argument is scaling factor used only for graphical representation
  sg ->AttachModule(ft2);
  sg ->AttachModule(ft3);
  selector.AttachGeometry(sg);

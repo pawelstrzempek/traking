@@ -20,7 +20,7 @@
 
 
 #define CHANNELS_NUMBER 196
-#define DATA_CHANNELS 97 //2*48 +2*1 ref channel
+
 //SET UP BINS FOR HISTOS
 #define DT_BINS  10000
 #define DT_MIN -2000
@@ -31,30 +31,20 @@
 #define TOT_MIN 0
 #define TOT_MAX 1000 	 //260
 
-#define DT_LOW_LIMIT -100
-#define DT_UPPER_LIMIT 200
-#define TOT_UPPER_LIMIT 100000
-
-
-
 
 TH1F* tot_hist[CHANNELS_NUMBER];
 TH1F* mult_hist[CHANNELS_NUMBER];
 TH1F* dt_hist[CHANNELS_NUMBER];
-
 TH2F* tot_mult_hist[CHANNELS_NUMBER];
 TH2F* tot_barcode;
-TH2F* dt_barcode_raw;
-TH2F* dt_vs_tot_raw;
 TH2F* dt_barcode;
 TH2F* dt_vs_tot;
-
-TH1D* dt_all_raw;
-TH1D* dt_all;
+//TH1F* plane2eff;
+//TH1F* planemult3;
+//TH1F* planemult6;
+//TH1F* planemult3x1;
+//TH1F* refTimesDiff;
 TH1F* deadChannelsMap;
-TH1F* t0_offsets;
-TH1F* global_mult;
-
 
 int DC[] = {8,12,61,66,71,81}; //66 is a new channel
 std::vector<int> deadChannels (DC,DC+sizeof(DC)/sizeof(int));
@@ -77,6 +67,8 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
   TTree *tree = new TTree("FOTRA","Panda trakers");
   tree->Branch("globEvNum", &globEv);
   tree->Branch("chNum", &chNum);
+//  tree->Branch("fplTDC", &fpl);
+//  tree->Branch("felTDC", &fel);
   tree->Branch("ftTDC2", &drifttime_tree);
   tree->Branch("ToT", &tot_tree);
 
@@ -111,10 +103,8 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
   for (int i = 0; i < CHANNELS_NUMBER; i++) { mult_hist[i] = new TH1F(Form("mult_hist_ch%d", i), Form("mult_hist_ch%d", i), 128, 0, 128); }
 	// tot barcode over channels
   tot_barcode = new TH2F("tot_barcode", "tot_barcode", 10000, 0, 1000, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
-  dt_barcode_raw = new TH2F("dt_barcode_raw", "dt_barcode_raw", DT_BINS, DT_MIN, DT_MAX, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
   dt_barcode = new TH2F("dt_barcode", "dt_barcode", DT_BINS, DT_MIN, DT_MAX, CHANNELS_NUMBER, 0, CHANNELS_NUMBER);
-  //dt_vs_tot_raw = new TH2F("dt_vs_tot_raw", "dt_vs_tot_raw", DT_BINS, DT_MIN, DT_MAX, TOT_BINS,TOT_MIN,TOT_MAX);
-  dt_vs_tot_raw = new TH2F("dt_vs_tot_raw", "dt_vs_tot_raw", 2000, -500, 500, 2200,-100,1000);
+  //dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", DT_BINS, DT_MIN, DT_MAX, TOT_BINS,TOT_MIN,TOT_MAX);
   dt_vs_tot = new TH2F("dt_vs_tot", "dt_vs_tot", 2000, -500, 500, 2200,-100,1000);
   //plane2eff = new TH1F("plane2eff","plane2eff",6,0,6);
   //planemult3 = new TH1F("planemult3","planemult3",5,0,5);
@@ -125,93 +115,9 @@ int  straw_preprocessor(int eventsNum, const char* fileName, int referenceChanne
   for (int i = 0; i < CHANNELS_NUMBER; i++) { dt_hist[i] = new TH1F(Form("dt_hist%d", i), Form("dt_hist%d", i), DT_BINS,DT_MIN,DT_MAX); }
   //refTimesDiff = new TH1F("refTimesDiff","refTimesDiff", 20000, -1000, 1000);
 
-  t0_offsets = new TH1F ("t0_offsets","offsets from time of arrivial of the lead edge of the signal to the TDC",200,-10,10);
   deadChannelsMap = new TH1F("deadChannelsMap","deadChannelsMap",CHANNELS_NUMBER,1,CHANNELS_NUMBER+1);
-  global_mult = new TH1F("global_mult","global_mult",10,0,10);
-
   for(it = deadChannels.begin(); it != deadChannels.end(); it++)
 	deadChannelsMap->Fill((*it));
-
-// ------ pre loop to find dt offsets --------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------------
-  for(Int_t i = 0; i < entries; i++)
-        {
-    if (i % 10000 == 0) cerr<<i<<" of "<<entries<<"\r";
-    if (i == eventsNum) break;
-    chain.GetEntry(i);
-    pArray = pEvent->GetTDCChannelsArray();
-    if (pArray == 0) continue;
-    TIter iter(pArray);
-   // globEv++;
-
-   double refTime = -200000;
-   double refTime0 = -200000;
-   double refTime49 = -200000;
-   double refTime98 = -200000;
-   double refTime147 = -200000;
-   //extracting reference time
-   while( pHit = (TDCChannel*) iter.Next() )
-   {
-         // fetch the ref time
-         if (pHit->GetChannel() == referenceChannel && pHit->GetMult() > 0){
-                refTime = pHit->GetLeadTime1();
-        }
-        if (pHit->GetChannel() == 0 && pHit->GetMult() > 0)
-                refTime0 = pHit->GetLeadTime1();
-        if(pHit->GetChannel() == 49 && pHit->GetMult() > 0 )
-                refTime49 = pHit->GetLeadTime1();
-//      if(pHit->GetChannel() == 98 && pHit->GetMult() > 0 )
-//              refTime98 = pHit->GetLeadTime1();
-        if(pHit->GetChannel() == 147 && pHit->GetMult() > 0 )
-                refTime147 = pHit->GetLeadTime1();
-   }
-
-    if (refTime == -200000) //skipping events with no ref time set
-        continue;
-    if (refTime0 == -200000) //skipping events with no ref time set
-        continue;
-    if (refTime49 == -200000) //skipping events with no ref time set
-        continue;
-//    if (refTime98 == -200000) //skipping events with no ref time set
-//        continue;
-    if (refTime147 == -200000) //skipping events with no ref time set
-        continue;
-    iter.Begin();
-			//std::cout<<"Next event=====================\n";
-    while( pHit = (TDCChannel*) iter.Next() )
-                {
-                        //current channel 
-                        int currentChannel = pHit->GetChannel();
-                        if(currentChannel == 0 || currentChannel == 49 || currentChannel>97) continue;//omitting high channels with no real data
-                        //skipping dead channels
-                        it = find (deadChannels.begin(), deadChannels.end(), currentChannel);
-                        if (it != deadChannels.end()){
-                                continue;
-                        }
-                        if(currentChannel > 49)
-                                currentChannel--;
-                        if(currentChannel > 98)
-                                currentChannel--;
-                        if(currentChannel > 147)
-                                currentChannel--;
-                        double driftTime = -100000000;
-			//std::cout<<"ch "<<currentChannel<<"\n";
-                        for(int j = 0; j < pHit->GetMult(); j++) {
-                                                                  driftTime = pHit->GetLeadTime(j)-refTime;
-                                                                  if(driftTime > DT_LOW_LIMIT && driftTime < DT_UPPER_LIMIT && pHit->GetTOT(j) < TOT_UPPER_LIMIT){//250
-                                                                                                        dt_vs_tot_raw->Fill(driftTime,pHit->GetTOT(j));
-                                                                                                        dt_barcode_raw->Fill( driftTime , currentChannel);
-                             //                                  	  std::cout<<driftTime<<std::endl;
-								  }
-                        }
-                }//loop over on event ready
-}
-
-vector<double> shifts = shifter->T0OffsetsCalculate(dt_barcode_raw,3,DATA_CHANNELS);
-//** fill in the t0 offsets to the hist
-for(unsigned j =0; j< shifts.size(); j++)
-	t0_offsets->Fill(shifts.at(j)); 
-
 
 
 // ------ loop over events--------------------------------------------------------------------------------------------
@@ -233,8 +139,6 @@ for(unsigned j =0; j< shifts.size(); j++)
    double refTime98 = -200000;
    double refTime147 = -200000;
    //extracting reference time
-   short multbuff = 0;
-   double dt1_buf=0., dt2_buf=0.;
    while( pHit = (TDCChannel*) iter.Next() )
    {
          // fetch the ref time
@@ -282,6 +186,14 @@ for(unsigned j =0; j< shifts.size(); j++)
 				currentChannel--;
 			if(currentChannel > 147)
 				currentChannel--;
+			// fill the tot histograms with the first hits on channels
+			//tot_hist[pHit->GetChannel()]->Fill(pHit->GetTOT1());
+			//double leadTimeTmp = 0.;
+			//fpl = -1;
+			//fel = -1;	
+			// fill the tot histograms with all the hits on channels
+			//for(int j = 0; j < pHit->GetMult(); j++) { tot_hist[pHit->GetChannel()]->Fill(pHit->GetTOT(j)); }
+
 			// fill the tot vs multiplicity histograms
 			//for(int j = 0; j < pHit->GetMult(); j++) { tot_mult_hist[pHit->GetChannel()]->Fill(pHit->GetTOT(j), j); }
 
@@ -289,31 +201,16 @@ for(unsigned j =0; j< shifts.size(); j++)
 			//for(int j = 0; j < pHit->GetMult(); j++) { tot_barcode->Fill(pHit->GetTOT(j), pHit->GetChannel()-1); }
 			//fill the drift time barcode histogram
 			double driftTime = -100000000;
-			multbuff = 0;
-			dt1_buf=-1000000.;
-			dt2_buf=-1000000.;
 			for(int j = 0; j < pHit->GetMult(); j++) {
-                                                                  driftTime = pHit->GetLeadTime(j)-refTime;
-                                                                  //if(driftTime > -100 && driftTime < 200 && pHit->GetTOT(j) < 100000){//250
-                                                                  if(driftTime > DT_LOW_LIMIT && driftTime < DT_UPPER_LIMIT && pHit->GetTOT(j) < TOT_UPPER_LIMIT)//250
-								  	multbuff++;
-								  if(multbuff== 1)
-									dt1_buf=driftTime+shifts[currentChannel];
-								  if(multbuff== 2)
-									dt2_buf=driftTime+shifts[currentChannel];
-								 }	
-	
-			for(int j = 0; j < pHit->GetMult(); j++) {
-								  if(multbuff != 1) break;  
 								  driftTime = pHit->GetLeadTime(j)-refTime;
-								  //if(driftTime > -100 && driftTime < 200 && pHit->GetTOT(j) < 100000){//250
-                                                                  if(driftTime > DT_LOW_LIMIT && driftTime < DT_UPPER_LIMIT && pHit->GetTOT(j) < TOT_UPPER_LIMIT){//250
+								  if(driftTime > -100 && driftTime < 200 && pHit->GetTOT(j) < 100000){//250
 								  					tot_hist[currentChannel]->Fill(pHit->GetTOT(j));	
 								  					tot_mult_hist[currentChannel]->Fill(pHit->GetTOT(j), j);
 							 	  					tot_barcode->Fill(pHit->GetTOT(j), currentChannel);
 								  					//if(currentChannel != 49 && currentChannel != 0)
-													dt_vs_tot->Fill(driftTime+shifts[currentChannel],pHit->GetTOT(j));
-								  					dt_barcode->Fill( driftTime+shifts[currentChannel] , currentChannel); 
+													dt_vs_tot->Fill(driftTime,pHit->GetTOT(j));
+								  					dt_barcode->Fill( driftTime , currentChannel); 
+								  				
 													
 													//****FILLING TREE***
 													drifttime_tree = driftTime;
@@ -322,15 +219,16 @@ for(unsigned j =0; j< shifts.size(); j++)
 													//fel = strawMap[currentChannel].second;
 													chNum = currentChannel;
 													tree->Fill();
-													//*****************		
+													//*****************						 					
+													//if(fpl == 1 ){layers[0]=true;}else if(fpl == 2){layers[1]=true;}	
+													//else if(fpl == 3 ){layers[2]=true;}else if(fpl == 4){layers[3]=true;}	
+													//else if(fpl == 5 ){layers[4]=true;}else if(fpl == 6){layers[5]=true;}	
+													
+
 													//std::cerr<<"currentChannel="<<currentChannel<<"  fpl="<<fpl<<std::endl;
 								 }
 			//					  std::cerr<< pHit->GetLeadTime(j)<<"   "<<refTime<<""<<(pHit->GetLeadTime(j)-refTime)<<std::endl;
 			}
-			global_mult->Fill(multbuff);
-
-//			if(multbuff == 2)
-//				std::cout<<"t1:"<< dt1_buf << "  t2:"<< dt2_buf<<std::endl;
 			//leadTimeTmp = pHit->GetLeadTime(0);
 
 			if(pHit->GetMult() > 0 ) 
@@ -347,24 +245,64 @@ for(unsigned j =0; j< shifts.size(); j++)
 			// fill the multiplicity histograms
 			mult_hist[currentChannel]->Fill(pHit->GetMult());
 		}//loop over on event ready
+
+		//std::cerr<<"\nNext Event\n";
+		/*if(layers[0] && layers[1] && layers[2] && layers[3] && layers[4] && layers[5] )
+			 planemult6->Fill(2);
+		if(!layers[0] && !layers[1] && !layers[2] && !layers[3] && !layers[4] && !layers[5])
+			 planemult6->Fill(3);
+		planemult6->SetTitle("1bin - all events, 2bin - events with at least 1 hit in each layer, 3bin - 0 hits in all modules");
+		if((layers[0] || layers[1]) && (layers[2] || layers[3]) && (layers[4] || layers[5]) )
+			 planemult3x1->Fill(2);
+		planemult3x1->SetTitle("1bin - all events, 2bin - events with at least 1 hit per module");
+
+		if(std::count(layers,layers+6,true) >= 3)
+			planemult3->Fill(2);
+		planemult3->SetTitle("1bin - all events, 2bin - events with at least 3 hits in any of 6 layers");
+
+		if((layers[0] || layers[1]) && (layers[2] || layers[3]) && (layers[4] || layers[5]))
+			plane2eff->Fill(2);
+		if((layers[0] || layers[1]) && (!layers[2] && !layers[3]) && (layers[4] || layers[5]))
+			plane2eff->Fill(3);
+		if((!layers[0] && !layers[1]) && (layers[2] || layers[3]) && (layers[4] || layers[5]))
+			plane2eff->Fill(4);
+		if((layers[0] || layers[1]) && (layers[2] || layers[3]) && (!layers[4] &&  !layers[5]))
+			plane2eff->Fill(5);
+
+
+		plane2eff->SetTitle("#splitline{1bin - all events, 2bin - at least 1 hit per module, 3bin - 1 hit per 1st and 3rd module, no hit on 2nd module}{4bin - no hit on 1st module 2nd and 3rd module fired, 5bin - no hit on 3rd module 1st and 2nd fired}");
+		//counts for values 1 are the reference (all events)
+		plane2eff->Fill(1);
+		planemult3->Fill(1);
+		planemult3x1->Fill(1);
+		planemult6->Fill(1);
+*/
 	}//loop over all events ready
+	// ------ adjust histograms
+/*	for (int i = 0; i < CHANNELS_NUMBER; i++) {
+		// tot histograms centered at mean and +- 5ns offsets
+		tot_hist[i]->GetXaxis()->SetRangeUser(tot_hist[i]->GetMean(1) - 100, tot_hist[i]->GetMean(1) + 100);
+		tot_mult_hist[i]->GetXaxis()->SetRangeUser(tot_hist[i]->GetMean(1) - 100, tot_hist[i]->GetMean(1) + 100);
+	}
+	tot_barcode->GetXaxis()->SetRangeUser(tot_hist[1]->GetMean(1) - 100, tot_hist[1]->GetMean(1) + 100);
+*/
+	// ------ draw fits
+	//for (int i = 0; i < CHANNELS_NUMBER; i++) {
+	//	tot_hist[i]->Fit("gaus");
+	//}
 
 	// ------ saving histograms
 	std::cout<<"Saving histograms"<<std::endl;
+	shifter->T0OffsetsCalculate(dt_barcode,1,96);
 	tree->Write();
 	tot_barcode->Write();
-	dt_barcode_raw->Write();
-	dt_all_raw = dt_barcode_raw->ProjectionX();
-        dt_all_raw->Write();
-	dt_vs_tot_raw->Write();
 	dt_barcode->Write();
-	dt_all = dt_barcode-> ProjectionX();
-	dt_all->Write();
 	dt_vs_tot->Write();
-	global_mult->Write();
+ //	plane2eff->Write(); 
+ // 	planemult3->Write();
+ //	planemult3x1->Write();
+ // 	planemult6->Write();
 
-	t0_offsets->Write();
-	deadChannelsMap->Write();
 
 	TDirectory *cdtot = new_file->mkdir("tot");
    	cdtot->cd();
@@ -378,6 +316,9 @@ for(unsigned j =0; j< shifts.size(); j++)
 	new_file->Close();
         new_file = new TFile(newFileName.c_str(),"READ");
         new_file->cd();
+
+
+
 
 	return 0;
 }

@@ -104,6 +104,7 @@ TFotraSelector::~TFotraSelector()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
+   out_file->Close();
 }
 
 Int_t TFotraSelector::GetEntry(Long64_t entry)
